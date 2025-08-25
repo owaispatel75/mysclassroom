@@ -7,12 +7,13 @@ plugins {
 
 android {
     namespace = "com.example.classroom_frontend"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -24,8 +25,8 @@ android {
         applicationId = "com.example.classroom_frontend"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -35,10 +36,28 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Ensure R8 uses our rules
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                file("proguard-rules.pro")
+            )
+        }
+        debug {
+            // usually no shrinking in debug
+            isMinifyEnabled = false
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+// ✅ Add this block at the end (top-level, not inside android{})
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // other deps (if any) go here, e.g. implementation(...)
 }

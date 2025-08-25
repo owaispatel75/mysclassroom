@@ -838,14 +838,35 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
 
   String get _studentMobile => widget.studentMobile ?? widget.teacherMobile;
 
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _future = _load();
+  //   _autoRefresh = Timer.periodic(const Duration(seconds: 30), (_) {
+  //     if (!mounted) return;
+  //     final next = _load();
+  //     setState(() => _future = next);
+  //   });
+  // }
+
   @override
   void initState() {
     super.initState();
+
+    // Fail-fast during development if wiring is wrong
+    assert(
+      widget.role != 'teacher' || widget.teacherMobile.isNotEmpty,
+      'Teacher view requires teacherMobile',
+    );
+    debugPrint(
+      '[SubjectList] role=${widget.role} '
+      'teacher=${widget.teacherMobile} student=$_studentMobile',
+    );
+
     _future = _load();
     _autoRefresh = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
-      final next = _load();
-      setState(() => _future = next);
+      setState(() => _future = _load());
     });
   }
 
@@ -884,13 +905,26 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   //   return ApiService.fetchTodaySessionsForStudent(widget.teacherMobile);
   // }
 
+  // Future<List<TodaySession>> _load() {
+  //   if (widget.role == 'teacher') {
+  //     return ApiService.fetchTeacherToday(teacherMobile: widget.teacherMobile);
+  //   }
+  //   return ApiService.fetchTodaySessionsForStudent(_studentMobile);
+  // }
+
   Future<List<TodaySession>> _load() {
     if (widget.role == 'teacher') {
-      return ApiService.fetchTeacherToday(teacherMobile: widget.teacherMobile);
+      final me = ApiService.normalizeMobile(widget.teacherMobile);
+      return ApiService.fetchTodayAll().then((all) {
+        return all.where((s) {
+          final tm = s.teacherMobile ?? '';
+          return ApiService.normalizeMobile(tm) == me;
+        }).toList();
+      });
     }
+    // student path unchanged
     return ApiService.fetchTodaySessionsForStudent(_studentMobile);
   }
-
 
   String _timeRange(TodaySession s) =>
       '${_timeFmt.format(s.startAt)} – ${_timeFmt.format(s.endAt)}';

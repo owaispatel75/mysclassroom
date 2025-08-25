@@ -85,7 +85,8 @@ import 'package:intl/intl.dart';
 
 class ApiService {
   // static const String base = 'http://192.168.29.211:8000';
-  static const String base = 'http://127.0.0.1:8000/api';
+  //static const String base = 'http://127.0.0.1:8000/api';
+  static const String base = 'https://classroom.auxcgen.com/api';
 
   static Map<String, String> get _jsonHeaders => const {
     'Accept': 'application/json', // <— force JSON, not HTML
@@ -283,22 +284,22 @@ class ApiService {
         .toList();
   }
 
-  static Future<List<TodaySession>> fetchTeacherToday({
-    required String teacherMobile,
-  }) async {
-    final uri = Uri.parse(
-      '$base/classrooms/teacher/today?mobile=$teacherMobile',
-    );
-    final res = await http.get(uri, headers: {'Accept': 'application/json'});
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load: ${res.statusCode} ${res.body}');
-    }
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final list = (data['sessions'] as List).cast<dynamic>();
-    return list
-        .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
+  // static Future<List<TodaySession>> fetchTeacherToday({
+  //   required String teacherMobile,
+  // }) async {
+  //   final uri = Uri.parse(
+  //     '$base/classrooms/teacher/today?mobile=$teacherMobile',
+  //   );
+  //   final res = await http.get(uri, headers: {'Accept': 'application/json'});
+  //   if (res.statusCode != 200) {
+  //     throw Exception('Failed to load: ${res.statusCode} ${res.body}');
+  //   }
+  //   final data = jsonDecode(res.body) as Map<String, dynamic>;
+  //   final list = (data['sessions'] as List).cast<dynamic>();
+  //   return list
+  //       .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
+  //       .toList();
+  // }
 
   static Future<void> startClass(int id) async {
     final res = await http.post(
@@ -656,6 +657,41 @@ class ApiService {
     final list = (jsonDecode(r.body)['subscriptions'] as List).cast<dynamic>();
     return list.map((e) => MySubscription.fromJson(e)).toList();
   }
+
+  // ApiService
+  static Future<List<TodaySession>> fetchTodayAll() async {
+    final uri = Uri.parse('$base/classrooms/today'); // no query
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode != 200) {
+      throw Exception('Failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final list = (data['sessions'] as List).cast<dynamic>();
+    return list
+        .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<List<TodaySession>> fetchTeacherToday({
+    required String teacherMobile,
+  }) async {
+    final uri = Uri.parse(
+      '$base/classrooms/teacher/today?mobile=$teacherMobile&teacher_mobile=$teacherMobile',
+    );
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final list = (data['sessions'] as List).cast<dynamic>();
+    return list
+        .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // (optional) small normalizer so 091-999... == 999...
+  static String normalizeMobile(String m) =>
+      m.replaceAll(RegExp(r'\D'), '').replaceFirst(RegExp(r'^(0|91)'), '');
 
   // static Future<void> enrollSubject({
   //   required String mobile,

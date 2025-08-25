@@ -250,9 +250,16 @@ class ClassroomController extends Controller
             ->whereBetween('subjectstarttime', [$start, $end])
             ->orderBy('subjectstarttime');
 
-        if ($request->filled('mobile')) {
-            $q->where('classroommobile', $request->input('mobile'));
+        // if ($request->filled('mobile')) {
+        //     $q->where('classroommobile', $request->input('mobile'));
+        // }
+
+        // Accept either ?mobile= or ?teacher_mobile= for robustness
+        if ($request->filled('mobile') || $request->filled('teacher_mobile')) {
+            $mobile = $request->input('mobile', $request->input('teacher_mobile'));
+            $q->where('classroommobile', $mobile);
         }
+
 
         $rows = $q->get();
 
