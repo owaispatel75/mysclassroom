@@ -85,8 +85,8 @@ import 'package:intl/intl.dart';
 
 class ApiService {
   // static const String base = 'http://192.168.29.211:8000';
-  //static const String base = 'http://127.0.0.1:8000/api';
-  static const String base = 'https://classroom.auxcgen.com/api';
+  static const String base = 'http://127.0.0.1:8000/api';
+  //static const String base = 'https://classroom.auxcgen.com/api';
 
   static Map<String, String> get _jsonHeaders => const {
     'Accept': 'application/json', // <— force JSON, not HTML
@@ -121,6 +121,43 @@ class ApiService {
     }
     return Map<String, dynamic>.from(decoded);
   }
+
+  // api_service.dart (add helpers)
+
+  static String _ymd(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
+
+  static Future<List<TodaySession>> fetchTodaySessionsForStudentOnDay(
+    String mobile, {
+    required DateTime day,
+  }) async {
+    final uri = Uri.parse(
+      '$base/classrooms/today',
+    ).replace(queryParameters: {'mobile': mobile, 'date': _ymd(day)});
+    final r = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (r.statusCode != 200)
+      throw Exception('Failed: ${r.statusCode} ${r.body}');
+    final list = (jsonDecode(r.body)['sessions'] as List).cast<dynamic>();
+    return list
+        .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<List<TodaySession>> fetchTeacherOnDay({
+    required String teacherMobile,
+    required DateTime day,
+  }) async {
+    final uri = Uri.parse(
+      '$base/classrooms/teacher/today',
+    ).replace(queryParameters: {'mobile': teacherMobile, 'date': _ymd(day)});
+    final r = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (r.statusCode != 200)
+      throw Exception('Failed: ${r.statusCode} ${r.body}');
+    final list = (jsonDecode(r.body)['sessions'] as List).cast<dynamic>();
+    return list
+        .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
 
   static Future<Map<String, dynamic>> createOrderPerLecture({
     required String mobile,

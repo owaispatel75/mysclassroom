@@ -103,20 +103,216 @@ class ClassroomController extends Controller
     //     return response()->json(['sessions' => $sessions]);
     // }
 
+    //working starts
+    // public function today(Request $request)
+    // {
+    //     $now   = \Illuminate\Support\Carbon::now();
+    //     $start = $now->copy()->startOfDay();
+    //     $end   = $now->copy()->endOfDay();
+
+    //     // Base query for today
+    //     $q = \Illuminate\Support\Facades\DB::table('classroomsubjectdetails')
+    //         ->select(
+    //             'id',
+    //             'classroomid',
+    //             'classroomname',
+    //             'classroommobile',     // teacher mobile
+    //             'subjectname',
+    //             'subjectstarttime',
+    //             'subjectduration',
+    //             'subjectendtime',
+    //             'status'
+    //         )
+    //         ->whereBetween('subjectstarttime', [$start, $end])
+    //         ->orderBy('subjectstarttime');
+
+    //     // (Optional) filter by classroom/grade
+    //     if ($request->filled('classroomid')) {
+    //         $q->where('classroomid', $request->integer('classroomid'));
+    //     }
+
+    //     $rows = $q->get();
+
+    //     // Compute endAt and filter out finished sessions
+    //     $sessions = [];
+    //     foreach ($rows as $r) {
+    //         $startAt = \Illuminate\Support\Carbon::parse($r->subjectstarttime);
+    //         $endAt   = $r->subjectendtime
+    //             ? \Illuminate\Support\Carbon::parse($r->subjectendtime)
+    //             : (clone $startAt)->addMinutes((int) $r->subjectduration);
+
+    //         if ($endAt->lte($now)) {
+    //             // already ended -> skip (rule)
+    //             continue;
+    //         }
+
+    //         // Normalize status (optional auto-live when window started)
+    //         $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
+    //         if ($status !== 'live') {
+    //             if     ($startAt->gt($now))  { $status = 'scheduled'; }
+    //             elseif ($startAt->lte($now)) { $status = 'live'; }
+    //         }
+
+    //         $sessions[] = [
+    //             'id'              => (int) $r->id,
+    //             'subject'         => $r->subjectname,
+    //             'teacher_mobile'  => $r->classroommobile,        // <-- include this so we can match
+    //             'start_at'        => $startAt->toIso8601String(),
+    //             'end_at'          => $endAt->toIso8601String(),
+    //             'duration_mins'   => (int) $r->subjectduration,
+    //             'status'          => $status,                    // scheduled | live
+    //             'joinable'        => $status === 'live',
+    //         ];
+    //     }
+
+    //     // Optional: filter by student’s active entitlements (subject + teacher)
+    //     // Only run this when 'mobile' is provided by the student FE.
+    //     if ($request->filled('mobile')) {
+    //         $studentMobile = $request->query('mobile');
+
+    //         // Adjust table/model to whatever you actually created for entitlements/enrollments.
+    //         // Example assumes a `student_subscriptions` table with:
+    //         //  - student_mobile
+    //         //  - subjectname
+    //         //  - teacher_mobile (nullable if subject-only)
+    //         //  - valid_to (datetime)
+    //         $entitled = \Illuminate\Support\Facades\DB::table('student_subscriptions')
+    //             ->where('student_mobile', $studentMobile)
+    //             ->where('valid_to', '>=', $now)
+    //             ->get(['subjectname', 'teacher_mobile']);
+
+    //         // Build a fast lookup set: "subject|teacher"
+    //         $allow = [];
+    //         foreach ($entitled as $e) {
+    //             // If your subscription does not bind to a teacher, allow any teacher for that subject by using a wildcard marker.
+    //             $key = $e->subjectname . '|' . ($e->teacher_mobile ?? '*');
+    //             $allow[$key] = true;
+    //         }
+
+    //         $sessions = array_values(array_filter($sessions, function ($s) use ($allow) {
+    //             $keyExact   = $s['subject'] . '|' . ($s['teacher_mobile'] ?? '');
+    //             $keySubject = $s['subject'] . '|*';  // subject-only entitlement
+    //             return isset($allow[$keyExact]) || isset($allow[$keySubject]);
+    //         }));
+    //     }
+
+    //     return response()->json(['sessions' => $sessions]);
+    // }
+    //working ends
+
+    // public function today(Request $request)
+    // {
+    //     $tz    = config('app.timezone');
+    //     $now   = \Illuminate\Support\Carbon::now($tz);
+    //     $start = $now->copy()->startOfDay();
+    //     $end   = $now->copy()->endOfDay();
+
+    //     $q = \Illuminate\Support\Facades\DB::table('classroomsubjectdetails')
+    //         ->select(
+    //             'id',
+    //             'classroomid',
+    //             'classroomname',
+    //             'classroommobile',   // teacher mobile
+    //             'subjectname',
+    //             'subjectstarttime',
+    //             'subjectduration',
+    //             'subjectendtime',
+    //             'status'
+    //         )
+    //         ->whereBetween('subjectstarttime', [$start, $end])
+    //         ->orderBy('subjectstarttime');
+
+    //     if ($request->filled('classroomid')) {
+    //         $q->where('classroomid', $request->integer('classroomid'));
+    //     }
+
+    //     $rows = $q->get();
+
+    //     $sessions = [];
+    //     foreach ($rows as $r) {
+    //         $startAt = \Illuminate\Support\Carbon::parse($r->subjectstarttime, $tz);
+    //         $endAt   = $r->subjectendtime
+    //             ? \Illuminate\Support\Carbon::parse($r->subjectendtime, $tz)
+    //             : (clone $startAt)->addMinutes((int) $r->subjectduration);
+
+    //         // hide finished classes
+    //         if ($endAt->lte($now)) continue;
+
+    //         // normalize status
+    //         $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
+    //         if ($status !== 'live') {
+    //             $status = $startAt->gt($now) ? 'scheduled' : 'live';
+    //         }
+
+    //         $sessions[] = [
+    //             'id'             => (int) $r->id,
+    //             'subject'        => $r->subjectname,
+    //             'teacher_mobile' => $r->classroommobile ?? null,
+    //             'start_at'       => $startAt->toIso8601String(),
+    //             'end_at'         => $endAt->toIso8601String(),
+    //             'duration_mins'  => (int) $r->subjectduration,
+    //             'status'         => $status,
+    //             'joinable'       => $status === 'live',
+    //         ];
+    //     }
+
+    //     // Only students with enrollments see anything
+    //     if ($request->filled('mobile')) {
+    //         $studentMobile = $request->query('mobile');
+
+    //         // your enrollments table (adjust if your table/columns differ)
+    //         $entitled = \Illuminate\Support\Facades\DB::table('student_subscriptions')
+    //             ->where('student_mobile', $studentMobile)
+    //             ->where('valid_to', '>=', $now)
+    //             ->get(['subjectname', 'teacher_mobile']);
+
+    //         $allow = [];
+    //         foreach ($entitled as $e) {
+    //             $allow[$e->subjectname.'|'.($e->teacher_mobile ?? '*')] = true;
+    //         }
+
+    //         $sessions = array_values(array_filter($sessions, function ($s) use ($allow) {
+    //             $keyExact   = $s['subject'].'|'.($s['teacher_mobile'] ?? '');
+    //             $keySubject = $s['subject'].'|*';
+    //             return isset($allow[$keyExact]) || isset($allow[$keySubject]);
+    //         }));
+    //     } else {
+    //         // Someone queried without ?mobile=: show nothing
+    //         $sessions = [];
+    //     }
+
+    //     // Only the current HOUR (e.g., at 6:10pm -> 6:00–6:59)
+    //     $hourStart = $now->copy()->startOfHour();
+    //     $hourEnd   = $hourStart->copy()->addHour(); // [start, end)
+    //     $sessions = array_values(array_filter($sessions, function ($s) use ($hourStart, $hourEnd, $tz) {
+    //         $sStart = \Illuminate\Support\Carbon::parse($s['start_at'], $tz);
+    //         return $sStart->gte($hourStart) && $sStart->lt($hourEnd);
+    //     }));
+
+    //     return response()->json(['sessions' => $sessions]);
+    // }
+
+    // app/Http/Controllers/API/ClassroomController.php
+
     public function today(Request $request)
     {
-        $now   = \Illuminate\Support\Carbon::now();
-        $start = $now->copy()->startOfDay();
-        $end   = $now->copy()->endOfDay();
+        // 1) Resolve the day we should show
+        $tz   = config('app.timezone', 'UTC');
+        $day  = $request->query('date'); // 'YYYY-MM-DD' from FE
+        $base = $day ? \Illuminate\Support\Carbon::parse($day, $tz) : \Illuminate\Support\Carbon::now($tz);
 
-        // Base query for today
+        $start = $base->copy()->startOfDay();
+        $end   = $base->copy()->endOfDay();
+        $now   = \Illuminate\Support\Carbon::now($tz);
+
+        // 2) Base query: strictly this day only
         $q = \Illuminate\Support\Facades\DB::table('classroomsubjectdetails')
             ->select(
                 'id',
                 'classroomid',
                 'classroomname',
-                'classroommobile',     // teacher mobile
-                'subjectname',
+                'classroommobile as teacher_mobile',
+                'subjectname as subject',
                 'subjectstarttime',
                 'subjectduration',
                 'subjectendtime',
@@ -125,78 +321,112 @@ class ClassroomController extends Controller
             ->whereBetween('subjectstarttime', [$start, $end])
             ->orderBy('subjectstarttime');
 
-        // (Optional) filter by classroom/grade
         if ($request->filled('classroomid')) {
             $q->where('classroomid', $request->integer('classroomid'));
         }
 
         $rows = $q->get();
 
-        // Compute endAt and filter out finished sessions
         $sessions = [];
         foreach ($rows as $r) {
-            $startAt = \Illuminate\Support\Carbon::parse($r->subjectstarttime);
-            $endAt   = $r->subjectendtime
-                ? \Illuminate\Support\Carbon::parse($r->subjectendtime)
-                : (clone $startAt)->addMinutes((int) $r->subjectduration);
+            $sAt = \Illuminate\Support\Carbon::parse($r->subjectstarttime, $tz);
+            $eAt = $r->subjectendtime
+                ? \Illuminate\Support\Carbon::parse($r->subjectendtime, $tz)
+                : (clone $sAt)->addMinutes((int) $r->subjectduration);
 
-            if ($endAt->lte($now)) {
-                // already ended -> skip (rule)
-                continue;
-            }
-
-            // Normalize status (optional auto-live when window started)
+            // Normalize status only to keep values consistent; DO NOT hide by time.
             $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
-            if ($status !== 'live') {
-                if     ($startAt->gt($now))  { $status = 'scheduled'; }
-                elseif ($startAt->lte($now)) { $status = 'live'; }
-            }
+
+            // Joinable = only if it's "live" right now (you can keep or change this rule)
+            $joinable = ($status === 'live');
 
             $sessions[] = [
-                'id'              => (int) $r->id,
-                'subject'         => $r->subjectname,
-                'teacher_mobile'  => $r->classroommobile,        // <-- include this so we can match
-                'start_at'        => $startAt->toIso8601String(),
-                'end_at'          => $endAt->toIso8601String(),
-                'duration_mins'   => (int) $r->subjectduration,
-                'status'          => $status,                    // scheduled | live
-                'joinable'        => $status === 'live',
+                'id'            => (int) $r->id,
+                'subject'       => $r->subject,
+                'teacher_mobile'=> $r->teacher_mobile,
+                'start_at'      => $sAt->toIso8601String(),
+                'end_at'        => $eAt->toIso8601String(),
+                'duration_mins' => (int) $r->subjectduration,
+                'status'        => $status,
+                'joinable'      => $joinable,
             ];
         }
 
-        // Optional: filter by student’s active entitlements (subject + teacher)
-        // Only run this when 'mobile' is provided by the student FE.
+        // 3) Student entitlement filter (only when ?mobile= is provided)
         if ($request->filled('mobile')) {
             $studentMobile = $request->query('mobile');
 
-            // Adjust table/model to whatever you actually created for entitlements/enrollments.
-            // Example assumes a `student_subscriptions` table with:
-            //  - student_mobile
-            //  - subjectname
-            //  - teacher_mobile (nullable if subject-only)
-            //  - valid_to (datetime)
             $entitled = \Illuminate\Support\Facades\DB::table('student_subscriptions')
                 ->where('student_mobile', $studentMobile)
                 ->where('valid_to', '>=', $now)
                 ->get(['subjectname', 'teacher_mobile']);
 
-            // Build a fast lookup set: "subject|teacher"
+            // Build allow set
             $allow = [];
             foreach ($entitled as $e) {
-                // If your subscription does not bind to a teacher, allow any teacher for that subject by using a wildcard marker.
-                $key = $e->subjectname . '|' . ($e->teacher_mobile ?? '*');
-                $allow[$key] = true;
+                $allow[$e->subjectname . '|' . ($e->teacher_mobile ?? '*')] = true;
             }
 
             $sessions = array_values(array_filter($sessions, function ($s) use ($allow) {
-                $keyExact   = $s['subject'] . '|' . ($s['teacher_mobile'] ?? '');
-                $keySubject = $s['subject'] . '|*';  // subject-only entitlement
-                return isset($allow[$keyExact]) || isset($allow[$keySubject]);
+                return isset($allow[$s['subject'].'|'.$s['teacher_mobile']]) ||
+                    isset($allow[$s['subject'].'|*']);
             }));
         }
 
         return response()->json(['sessions' => $sessions]);
     }
+
+    public function teacherToday(Request $request)
+    {
+        $tz   = config('app.timezone', 'UTC');
+        $day  = $request->query('date'); // 'YYYY-MM-DD'
+        $base = $day ? \Illuminate\Support\Carbon::parse($day, $tz) : \Illuminate\Support\Carbon::now($tz);
+
+        $start = $base->copy()->startOfDay();
+        $end   = $base->copy()->endOfDay();
+
+        $q = \Illuminate\Support\Facades\DB::table('classroomsubjectdetails')
+            ->select(
+                'id',
+                'subjectname as subject',
+                'subjectstarttime',
+                'subjectduration',
+                'subjectendtime',
+                'status'
+            )
+            ->whereBetween('subjectstarttime', [$start, $end])
+            ->orderBy('subjectstarttime');
+
+        if ($request->filled('mobile')) {
+            $q->where('classroommobile', $request->input('mobile'));
+        }
+
+        $rows = $q->get();
+
+        $list = [];
+        foreach ($rows as $r) {
+            $sAt = \Illuminate\Support\Carbon::parse($r->subjectstarttime, $tz);
+            $eAt = $r->subjectendtime
+                ? \Illuminate\Support\Carbon::parse($r->subjectendtime, $tz)
+                : (clone $sAt)->addMinutes((int) $r->subjectduration);
+
+            $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
+
+            $list[] = [
+                'id'            => (int) $r->id,
+                'subject'       => $r->subject,
+                'start_at'      => $sAt->toIso8601String(),
+                'end_at'        => $eAt->toIso8601String(),
+                'duration_mins' => (int) $r->subjectduration,
+                'status'        => $status,
+                'joinable'      => ($status === 'live'),
+            ];
+        }
+
+        return response()->json(['sessions' => $list]);
+    }
+
+
 
 
     // GET /api/classrooms/teacher/today?mobile=9998887777
@@ -240,61 +470,62 @@ class ClassroomController extends Controller
     //     return response()->json(['sessions' => $list]);
     // }
 
-    public function teacherToday(Request $request)
-    {
-        $now   = Carbon::now();
-        $start = $now->copy()->startOfDay();
-        $end   = $now->copy()->endOfDay();
+    //WORKING
+    // public function teacherToday(Request $request)
+    // {
+    //     $now   = Carbon::now();
+    //     $start = $now->copy()->startOfDay();
+    //     $end   = $now->copy()->endOfDay();
 
-        $q = DB::table('classroomsubjectdetails')
-            ->whereBetween('subjectstarttime', [$start, $end])
-            ->orderBy('subjectstarttime');
+    //     $q = DB::table('classroomsubjectdetails')
+    //         ->whereBetween('subjectstarttime', [$start, $end])
+    //         ->orderBy('subjectstarttime');
 
-        // if ($request->filled('mobile')) {
-        //     $q->where('classroommobile', $request->input('mobile'));
-        // }
+    //     // if ($request->filled('mobile')) {
+    //     //     $q->where('classroommobile', $request->input('mobile'));
+    //     // }
 
-        // Accept either ?mobile= or ?teacher_mobile= for robustness
-        if ($request->filled('mobile') || $request->filled('teacher_mobile')) {
-            $mobile = $request->input('mobile', $request->input('teacher_mobile'));
-            $q->where('classroommobile', $mobile);
-        }
+    //     // Accept either ?mobile= or ?teacher_mobile= for robustness
+    //     if ($request->filled('mobile') || $request->filled('teacher_mobile')) {
+    //         $mobile = $request->input('mobile', $request->input('teacher_mobile'));
+    //         $q->where('classroommobile', $mobile);
+    //     }
 
 
-        $rows = $q->get();
+    //     $rows = $q->get();
 
-        $list = [];
-        foreach ($rows as $r) {
-            $startAt = Carbon::parse($r->subjectstarttime);
-            $endAt   = $r->subjectendtime
-                ? Carbon::parse($r->subjectendtime)
-                : (clone $startAt)->addMinutes((int)$r->subjectduration);
+    //     $list = [];
+    //     foreach ($rows as $r) {
+    //         $startAt = Carbon::parse($r->subjectstarttime);
+    //         $endAt   = $r->subjectendtime
+    //             ? Carbon::parse($r->subjectendtime)
+    //             : (clone $startAt)->addMinutes((int)$r->subjectduration);
 
-            if ($endAt->lte($now)) continue;
+    //         if ($endAt->lte($now)) continue;
 
             
             
-            // normalize
-            $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
-            if ($status !== 'live') {
-                if     ($startAt->gt($now))  { $status = 'scheduled'; }
-                elseif ($startAt->lte($now)) { $status = 'live'; }
-            }
+    //         // normalize
+    //         $status = in_array($r->status, ['scheduled','live','ended'], true) ? $r->status : 'scheduled';
+    //         if ($status !== 'live') {
+    //             if     ($startAt->gt($now))  { $status = 'scheduled'; }
+    //             elseif ($startAt->lte($now)) { $status = 'live'; }
+    //         }
 
-            $list[] = [
-                'id'            => (int) $r->id,
-                'subject'       => $r->subjectname,
-                'start_at'      => $startAt->toIso8601String(),
-                'end_at'        => $endAt->toIso8601String(),
-                'duration_mins' => (int) $r->subjectduration,
-                'status'        => $status,
-                'joinable'      => $status === 'live',
-                'room_id'       => $r->zego_room_id ?? null,
-            ];
-        }
+    //         $list[] = [
+    //             'id'            => (int) $r->id,
+    //             'subject'       => $r->subjectname,
+    //             'start_at'      => $startAt->toIso8601String(),
+    //             'end_at'        => $endAt->toIso8601String(),
+    //             'duration_mins' => (int) $r->subjectduration,
+    //             'status'        => $status,
+    //             'joinable'      => $status === 'live',
+    //             'room_id'       => $r->zego_room_id ?? null,
+    //         ];
+    //     }
 
-        return response()->json(['sessions' => $list]);
-    }
+    //     return response()->json(['sessions' => $list]);
+    // }
 
 
     // POST /api/classrooms/{id}/start

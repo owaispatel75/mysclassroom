@@ -205,7 +205,7 @@ class PaymentsController extends Controller
 
         return response()->json([
             'order_id' => $orderId,
-            'key'      => env('RAZORPAY_KEY_ID', 'rzp_test_xxxxxxxx'),
+            'key'      => env('RAZORPAY_KEY_ID', 'rzp_test_R5xbsxcT67KpYq'),
             'amount'   => $off->price_paise,
             'currency' => $off->currency,
             'subject'  => $off->subjectname,

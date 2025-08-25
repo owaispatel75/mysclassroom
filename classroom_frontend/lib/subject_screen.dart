@@ -912,18 +912,32 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   //   return ApiService.fetchTodaySessionsForStudent(_studentMobile);
   // }
 
+  // Future<List<TodaySession>> _load() {
+  //   if (widget.role == 'teacher') {
+  //     final me = ApiService.normalizeMobile(widget.teacherMobile);
+  //     return ApiService.fetchTodayAll().then((all) {
+  //       return all.where((s) {
+  //         final tm = s.teacherMobile ?? '';
+  //         return ApiService.normalizeMobile(tm) == me;
+  //       }).toList();
+  //     });
+  //   }
+  //   // student path unchanged
+  //   return ApiService.fetchTodaySessionsForStudent(_studentMobile);
+  // }
+
   Future<List<TodaySession>> _load() {
+    final day = DateTime.now(); // show "this day" only
     if (widget.role == 'teacher') {
-      final me = ApiService.normalizeMobile(widget.teacherMobile);
-      return ApiService.fetchTodayAll().then((all) {
-        return all.where((s) {
-          final tm = s.teacherMobile ?? '';
-          return ApiService.normalizeMobile(tm) == me;
-        }).toList();
-      });
+      return ApiService.fetchTeacherOnDay(
+        teacherMobile: widget.teacherMobile,
+        day: day,
+      );
     }
-    // student path unchanged
-    return ApiService.fetchTodaySessionsForStudent(_studentMobile);
+    return ApiService.fetchTodaySessionsForStudentOnDay(
+      _studentMobile,
+      day: day,
+    );
   }
 
   String _timeRange(TodaySession s) =>

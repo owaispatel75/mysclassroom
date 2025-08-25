@@ -705,6 +705,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 use App\Models\Payment;
+use Illuminate\Support\Facades\Http;
+
 
 class BillingController extends Controller
 {
@@ -790,45 +792,134 @@ class BillingController extends Controller
         }
     }
 
+    // // POST /api/payments/create-order { mobile }
+    // public function createOrder(Request $request)
+    // {
+    //     try {
+    //         $mobile = $request->validate(['mobile'=>'required|string'])['mobile'];
+
+    //         // recompute totals exactly like myBilling()
+    //         $pending = DB::table('lecture_attendance')
+    //             ->select('subjectname','teacher_mobile', DB::raw('COUNT(*) as cnt'))
+    //             ->where('student_mobile', $mobile)
+    //             ->whereNull('invoice_id')
+    //             ->groupBy('subjectname','teacher_mobile')
+    //             ->get();
+
+    //         if ($pending->isEmpty()) {
+    //             return response()->json(['message' => 'Nothing to pay'], 422);
+    //         }
+
+    //         $globalRate = 1000;
+    //         if (Schema::hasTable('app_settings')) {
+    //             $val = DB::table('app_settings')->where('key','per_lecture_rate_paise')->value('value');
+    //             if (is_numeric($val)) $globalRate = (int)$val;
+    //         }
+
+    //         $offRows = DB::table('offerings')->where('active',1)->get();
+    //         $priceMap = [];
+    //         foreach ($offRows as $o) {
+    //             $priceMap[$o->subjectname . '|' . $o->teacher_mobile] = (int)$o->price_paise;
+    //         }
+
+    //         $amountTotal = 0;
+    //         $lineItems = [];
+    //         foreach ($pending as $r) {
+    //             $key  = $r->subjectname.'|'.$r->teacher_mobile;
+    //             $rate = $priceMap[$key] ?? $globalRate;
+    //             $cnt  = (int)$r->cnt;
+    //             $amt  = $rate * $cnt;
+    //             $amountTotal += $amt;
+
+    //             $lineItems[] = [
+    //                 'subjectname'    => $r->subjectname,
+    //                 'teacher_mobile' => $r->teacher_mobile,
+    //                 'count'          => $cnt,
+    //                 'rate_paise'     => $rate,
+    //                 'amount_paise'   => $amt,
+    //             ];
+    //         }
+
+    //         if ($amountTotal <= 0) {
+    //             return response()->json(['message' => 'Nothing to pay'], 422);
+    //         }
+
+    //         $orderId = 'order_'.bin2hex(random_bytes(8));
+
+    //         if (Schema::hasTable('payments')) {
+    //             Payment::create([
+    //                 'mobile'   => $mobile,
+    //                 'amount'   => $amountTotal,
+    //                 'currency' => 'INR',
+    //                 'status'   => 'created',
+    //                 'order_id' => $orderId,
+    //                 'notes'    => [
+    //                     'billing_model' => 'per_lecture_per_subject',
+    //                     'items'         => $lineItems, // detailed breakdown
+    //                 ],
+    //             ]);
+    //         }
+
+    //         return response()->json([
+    //             'order_id' => $orderId,
+    //             'key'      => config('services.razorpay.key_id', 'rzp_test_xxxxx'),
+    //             'amount'   => $amountTotal,
+    //             'currency' => 'INR',
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         return response()->json(['error'=>'create_order_failed','message'=>$e->getMessage()], 500);
+    //     }
+    // }
+
     // POST /api/payments/create-order { mobile }
     public function createOrder(Request $request)
     {
         try {
-            $mobile = $request->validate(['mobile'=>'required|string'])['mobile'];
+            $mobile = $request->validate([
+                'mobile' => 'required|string'
+            ])['mobile'];
 
-            // recompute totals exactly like myBilling()
+            // 1) Recompute pending (exactly like myBilling)
             $pending = DB::table('lecture_attendance')
-                ->select('subjectname','teacher_mobile', DB::raw('COUNT(*) as cnt'))
+                ->select('subjectname', 'teacher_mobile', DB::raw('COUNT(*) as cnt'))
                 ->where('student_mobile', $mobile)
                 ->whereNull('invoice_id')
-                ->groupBy('subjectname','teacher_mobile')
+                ->groupBy('subjectname', 'teacher_mobile')
                 ->get();
 
             if ($pending->isEmpty()) {
                 return response()->json(['message' => 'Nothing to pay'], 422);
             }
 
+            // 2) Resolve per-lecture rate (default 1000 paise = ₹10)
             $globalRate = 1000;
             if (Schema::hasTable('app_settings')) {
-                $val = DB::table('app_settings')->where('key','per_lecture_rate_paise')->value('value');
-                if (is_numeric($val)) $globalRate = (int)$val;
+                $val = DB::table('app_settings')
+                    ->where('key', 'per_lecture_rate_paise')
+                    ->value('value');
+                if (is_numeric($val)) {
+                    $globalRate = (int) $val;
+                }
             }
 
-            $offRows = DB::table('offerings')->where('active',1)->get();
             $priceMap = [];
-            foreach ($offRows as $o) {
-                $priceMap[$o->subjectname . '|' . $o->teacher_mobile] = (int)$o->price_paise;
+            if (Schema::hasTable('offerings')) {
+                $offRows = DB::table('offerings')->where('active', 1)->get();
+                foreach ($offRows as $o) {
+                    $priceMap[$o->subjectname.'|'.$o->teacher_mobile] = (int) $o->price_paise;
+                }
             }
 
+            // 3) Build total + line items
             $amountTotal = 0;
-            $lineItems = [];
+            $lineItems   = [];
             foreach ($pending as $r) {
                 $key  = $r->subjectname.'|'.$r->teacher_mobile;
                 $rate = $priceMap[$key] ?? $globalRate;
-                $cnt  = (int)$r->cnt;
+                $cnt  = (int) $r->cnt;
                 $amt  = $rate * $cnt;
-                $amountTotal += $amt;
 
+                $amountTotal += $amt;
                 $lineItems[] = [
                     'subjectname'    => $r->subjectname,
                     'teacher_mobile' => $r->teacher_mobile,
@@ -842,8 +933,49 @@ class BillingController extends Controller
                 return response()->json(['message' => 'Nothing to pay'], 422);
             }
 
-            $orderId = 'order_'.bin2hex(random_bytes(8));
+            // Razorpay requires minimum 100 paise (₹1)
+            if ($amountTotal < 100) {
+                $amountTotal = 100;
+            }
 
+            // 4) Get keys from config/env
+            $keyId    = config('services.razorpay.key_id') ?? env('RAZORPAY_KEY_ID');
+            $keySecret= config('services.razorpay.secret') ?? env('RAZORPAY_KEY_SECRET');
+
+            // 5) Create a real Razorpay order when keys exist; otherwise fallback
+            $orderId   = null;
+            $devMode   = false;
+
+            if (!empty($keyId) && !empty($keySecret)) {
+                // Create Order via Razorpay REST API
+                $resp = Http::withBasicAuth($keyId, $keySecret)
+                    ->asForm()
+                    ->post('https://api.razorpay.com/v1/orders', [
+                        'amount'   => $amountTotal,      // paise
+                        'currency' => 'INR',
+                        'receipt'  => 'rcpt_'.bin2hex(random_bytes(6)),
+                        'notes'    => [
+                            'mobile'        => $mobile,
+                            'billing_model' => 'per_lecture_per_subject',
+                            'items_json'    => json_encode($lineItems),
+                        ],
+                    ]);
+
+                if (!$resp->successful()) {
+                    return response()->json([
+                        'error'   => 'razorpay_order_failed',
+                        'message' => $resp->json('error.description') ?? $resp->body(),
+                    ], 502);
+                }
+
+                $orderId = $resp->json('id'); // e.g. order_ABC123
+            } else {
+                // Fallback (dev only): generate a pseudo order id
+                $orderId = 'order_'.bin2hex(random_bytes(8));
+                $devMode = true;
+            }
+
+            // 6) Persist our local Payment row (optional but helpful)
             if (Schema::hasTable('payments')) {
                 Payment::create([
                     'mobile'   => $mobile,
@@ -853,21 +985,28 @@ class BillingController extends Controller
                     'order_id' => $orderId,
                     'notes'    => [
                         'billing_model' => 'per_lecture_per_subject',
-                        'items'         => $lineItems, // detailed breakdown
+                        'items'         => $lineItems,
+                        'dev_mode'      => $devMode,
                     ],
                 ]);
             }
 
+            // 7) Return payload expected by the app (NOTE: key INCLUDED)
             return response()->json([
                 'order_id' => $orderId,
-                'key'      => config('services.razorpay.key_id', 'rzp_test_xxxxx'),
+                'key'      => $keyId ?? 'rzp_test_xxxxx', // never null now
                 'amount'   => $amountTotal,
                 'currency' => 'INR',
+                'dev_mode' => $devMode,
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['error'=>'create_order_failed','message'=>$e->getMessage()], 500);
+            return response()->json([
+                'error'   => 'create_order_failed',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     // POST /api/payments/confirm { mobile, order_id, payment_id, signature }
     public function confirm(Request $request)
