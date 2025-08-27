@@ -85,8 +85,8 @@ import 'package:intl/intl.dart';
 
 class ApiService {
   // static const String base = 'http://192.168.29.211:8000';
-  static const String base = 'http://127.0.0.1:8000/api';
-  //static const String base = 'https://classroom.auxcgen.com/api';
+  //static const String base = 'http://127.0.0.1:8000/api';
+  static const String base = 'https://classroom.auxcgen.com/api';
 
   static Map<String, String> get _jsonHeaders => const {
     'Accept': 'application/json', // <— force JSON, not HTML
@@ -157,7 +157,6 @@ class ApiService {
         .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
         .toList();
   }
-
 
   static Future<Map<String, dynamic>> createOrderPerLecture({
     required String mobile,
