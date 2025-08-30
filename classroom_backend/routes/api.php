@@ -25,6 +25,7 @@ use App\Http\Controllers\API\SubscriptionController;
 use App\Http\Controllers\API\BillingController;
 use App\Http\Controllers\API\AttendanceController;
 use App\Http\Controllers\API\ReportsController;
+use App\Http\Controllers\API\UserAdminController;
 
 // quick health check
 Route::get('ping', fn () => response()->json(['ok' => true]));
@@ -94,4 +95,8 @@ Route::delete('offerings/{id}',   [OfferingController::class, 'destroy']);
 Route::post('/subscriptions/enroll', [SubscriptionController::class, 'enroll']);
 Route::post('/subscriptions/unenroll', [SubscriptionController::class, 'unenroll']);
 
-
+// Admin Users CRUD
+Route::get   ('users',        [UserAdminController::class, 'index']);   // ?role=student|teacher&search=&page=1&per_page=20
+Route::post  ('users',        [UserAdminController::class, 'store']);   // create
+Route::put   ('users/{id}',   [UserAdminController::class, 'update']);  // update
+Route::delete('users/{id}',   [UserAdminController::class, 'destroy']); // delete (soft via active=0 or hard)

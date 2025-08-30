@@ -85,8 +85,8 @@ import 'package:intl/intl.dart';
 
 class ApiService {
   // static const String base = 'http://192.168.29.211:8000';
-  //static const String base = 'http://127.0.0.1:8000/api';
-  static const String base = 'https://classroom.auxcgen.com/api';
+  static const String base = 'http://127.0.0.1:8000/api';
+  //static const String base = 'https://classroom.auxcgen.com/api';
 
   static Map<String, String> get _jsonHeaders => const {
     'Accept': 'application/json', // <— force JSON, not HTML
@@ -706,6 +706,92 @@ class ApiService {
     return list
         .map((e) => TodaySession.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  // ===== Admin Users CRUD =====
+
+  static Future<Map<String, dynamic>> adminFetchUsers({
+    String? role, // 'student' or 'teacher'
+    String? search,
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    final qp = <String, String>{'page': '$page', 'per_page': '$perPage'};
+    if (role != null && role.isNotEmpty) qp['role'] = role;
+    if (search != null && search.isNotEmpty) qp['search'] = search;
+
+    final uri = Uri.parse('$base/users').replace(queryParameters: qp);
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode != 200) {
+      throw Exception('Users load failed: ${res.statusCode} ${res.body}');
+    }
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  static Future<Map<String, dynamic>> adminCreateUser({
+    String? fullname,
+    required String mobile,
+    String? email,
+    required String role, // 'student' | 'teacher'
+    bool active = true,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$base/users'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'fullname': fullname,
+        'mobile': mobile,
+        'email': email,
+        'role': role,
+        'active': active,
+      }),
+    );
+    if (res.statusCode != 201) {
+      throw Exception('Create failed: ${res.statusCode} ${res.body}');
+    }
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  static Future<Map<String, dynamic>> adminUpdateUser({
+    required int id,
+    String? fullname,
+    String? mobile,
+    String? email,
+    String? role, // optional
+    bool? active, // optional
+  }) async {
+    final body = <String, dynamic>{};
+    if (fullname != null) body['fullname'] = fullname;
+    if (mobile != null) body['mobile'] = mobile;
+    if (email != null) body['email'] = email;
+    if (role != null) body['role'] = role;
+    if (active != null) body['active'] = active;
+
+    final res = await http.put(
+      Uri.parse('$base/users/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Update failed: ${res.statusCode} ${res.body}');
+    }
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  static Future<void> adminDeleteUser(int id) async {
+    final res = await http.delete(
+      Uri.parse('$base/users/$id'),
+      headers: {'Accept': 'application/json'},
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Delete failed: ${res.statusCode} ${res.body}');
+    }
   }
 
   static Future<List<TodaySession>> fetchTeacherToday({

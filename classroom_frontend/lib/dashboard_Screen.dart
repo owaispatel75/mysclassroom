@@ -175,6 +175,7 @@
 import 'package:classroom_frontend/admin_classroom_screen.dart';
 import 'package:classroom_frontend/admin_reports_screen.dart';
 import 'package:classroom_frontend/admin_subjects_screen.dart';
+import 'package:classroom_frontend/admin_users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:classroom_frontend/subject_screen.dart';
 import 'package:classroom_frontend/payment_screen.dart';
@@ -327,6 +328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const AdminSubjectsScreen(),
         ),
       );
+      tabs.add(_TabDef('Users', Icons.group, const AdminUsersScreen()));
     }
 
     tabs.add(
